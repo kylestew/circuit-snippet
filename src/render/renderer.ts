@@ -4,6 +4,11 @@ import { formatSI } from './format.js';
 
 const WAVEFORM_NAMES = ['DC', 'AC', 'Sq', 'Tri', 'Saw', 'Pls', 'Nse'];
 
+const THEMES = {
+  light: { bg: '#fff', stroke: '#333', fill: '#333', label: '#555', dot: '#333' },
+  dark: { bg: '#111', stroke: '#ccc', fill: '#ccc', label: '#888', dot: '#ccc' },
+};
+
 function componentLabel(comp: Component): string | undefined {
   switch (comp.type) {
     case 'r': return formatSI(comp.resistance, 'Ω');
@@ -27,12 +32,14 @@ export class Renderer {
   private scale: number;
   private offsetX: number;
   private offsetY: number;
+  private theme: keyof typeof THEMES;
 
-  constructor(canvas: HTMLCanvasElement, circuitData: CircuitData) {
+  constructor(canvas: HTMLCanvasElement, circuitData: CircuitData, theme: 'light' | 'dark' = 'light') {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Cannot get 2d context');
     this.ctx = ctx;
     this.circuitData = circuitData;
+    this.theme = theme;
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const comp of circuitData.components) {
@@ -59,18 +66,18 @@ export class Renderer {
     const { ctx } = this;
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
+    const colors = THEMES[this.theme];
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = '#333';
-    ctx.fillStyle = '#333';
+    ctx.strokeStyle = colors.stroke;
+    ctx.fillStyle = colors.fill;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    // Draw components
     for (const comp of this.circuitData.components) {
       const x1 = this.tx(comp.x1);
       const y1 = this.ty(comp.y1);
@@ -91,9 +98,8 @@ export class Renderer {
       }
     }
 
-    // Draw labels (always horizontal, offset from component)
     ctx.font = '11px system-ui, sans-serif';
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = colors.label;
     for (const comp of this.circuitData.components) {
       const label = componentLabel(comp);
       if (!label) continue;
@@ -112,6 +118,7 @@ export class Renderer {
       }
     }
 
+    ctx.fillStyle = colors.dot;
     this.drawJunctions();
   }
 
@@ -125,7 +132,6 @@ export class Renderer {
       counts.get(k1)!.count++;
       counts.get(k2)!.count++;
     }
-    this.ctx.fillStyle = '#333';
     for (const { x, y, count } of counts.values()) {
       if (count >= 3) {
         drawDot(this.ctx, x, y);

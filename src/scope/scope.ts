@@ -30,18 +30,25 @@ function formatVoltage(v: number): string {
   return `${(v * 1e6).toFixed(0)}μV`;
 }
 
+const SCOPE_THEMES = {
+  light: { bg: '#fff', grid: '#e0e0e0', zero: '#bbb', border: '#ccc', text: '#888', legend: '#555' },
+  dark: { bg: '#111', grid: '#333', zero: '#555', border: '#444', text: '#777', legend: '#aaa' },
+};
+
 export class Scope {
   private ctx: CanvasRenderingContext2D;
   private traces: Trace[];
   private displayTime: number;
   private lastTriggerTime = 0;
   private triggerPosition = 0.5;
+  private theme: keyof typeof SCOPE_THEMES;
 
-  constructor(canvas: HTMLCanvasElement, netlist: Netlist, circuitData: CircuitData, displayTime = 0.012) {
+  constructor(canvas: HTMLCanvasElement, netlist: Netlist, circuitData: CircuitData, displayTime = 0.012, theme: 'light' | 'dark' = 'light') {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Cannot get 2d context');
     this.ctx = ctx;
     this.displayTime = displayTime;
+    this.theme = theme;
     this.traces = this.resolveTraces(netlist, circuitData);
   }
 
@@ -193,8 +200,9 @@ export class Scope {
     const plotW = w - margin.left - margin.right;
     const plotH = h - margin.top - margin.bottom;
 
+    const colors = SCOPE_THEMES[this.theme];
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, w, h);
 
     if (result.time.length < 10) return;
@@ -231,11 +239,10 @@ export class Scope {
     const tx = (t: number) => margin.left + ((t - tOrigin) / tRange) * plotW;
     const ty = (v: number) => margin.top + (1 - (v - vMin) / vRange) * plotH;
 
-    // Grid
-    ctx.strokeStyle = '#e0e0e0';
+    ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 0.5;
     ctx.font = '10px system-ui, sans-serif';
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = colors.text;
 
     // Voltage grid
     const vInterval = niceInterval(vRange, 5);
@@ -254,13 +261,13 @@ export class Scope {
     // Zero line
     if (vMin < 0 && vMax > 0) {
       const y0 = ty(0);
-      ctx.strokeStyle = '#bbb';
+      ctx.strokeStyle = colors.zero;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(margin.left, y0);
       ctx.lineTo(w - margin.right, y0);
       ctx.stroke();
-      ctx.strokeStyle = '#e0e0e0';
+      ctx.strokeStyle = colors.grid;
       ctx.lineWidth = 0.5;
     }
 
@@ -277,8 +284,7 @@ export class Scope {
       ctx.fillText(formatTime(t), x, h - margin.bottom + 5);
     }
 
-    // Plot border
-    ctx.strokeStyle = '#ccc';
+    ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
     ctx.strokeRect(margin.left, margin.top, plotW, plotH);
 
@@ -329,7 +335,7 @@ export class Scope {
       const y = margin.top + 8 + i * 16;
       ctx.fillStyle = traces[i].color;
       ctx.fillRect(x, y + 2, 10, 10);
-      ctx.fillStyle = '#555';
+      ctx.fillStyle = colors.legend;
       ctx.fillText(traces[i].label, x + 14, y);
     }
   }

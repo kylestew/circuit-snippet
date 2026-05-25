@@ -36,15 +36,20 @@ const STYLES = `
   .cs-container { display: flex; gap: 0; overflow: hidden; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
   .cs-container.vertical { flex-direction: column; }
   .cs-container.horizontal { flex-direction: row; }
+  .cs-container.dark { background: #1a1a1a; border-color: #333; }
   canvas { display: block; }
   .cs-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 4px 8px; background: #f5f5f5; border-top: 1px solid #ddd; align-items: center; max-height: 140px; overflow-y: auto; }
-  .cs-toggle { border: none; background: none; cursor: pointer; font-size: 1rem; padding: 2px 6px; border-radius: 3px; }
+  .cs-controls.dark { background: #222; border-color: #333; }
+  .cs-toggle { border: none; background: none; cursor: pointer; font-size: 1rem; padding: 2px 6px; border-radius: 3px; color: inherit; }
   .cs-toggle:hover { background: #e0e0e0; }
+  .cs-controls.dark .cs-toggle:hover { background: #444; }
   .cs-hidden { display: none; }
   .cs-slider-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; width: 100%; }
   .cs-slider-row label { font-size: 12px; min-width: 60px; color: #555; }
   .cs-slider-row input[type="range"] { flex: 1; height: 4px; }
   .cs-slider-row .cs-slider-value { font-size: 11px; min-width: 65px; text-align: right; color: #333; font-variant-numeric: tabular-nums; }
+  .cs-controls.dark .cs-slider-row label { color: #aaa; }
+  .cs-controls.dark .cs-slider-row .cs-slider-value { color: #ccc; }
 `;
 
 class CircuitSnippetElement extends HTMLElement {
@@ -68,6 +73,33 @@ class CircuitSnippetElement extends HTMLElement {
     this.observer?.disconnect();
   }
 
+  // --- Public API ---
+
+  start(): void {
+    this.runner?.start();
+  }
+
+  stop(): void {
+    this.runner?.stop();
+  }
+
+  setComponentValue(ref: string, param: string, value: number): void {
+    if (!this.netlist || !this.sim) return;
+    const idx = resolveComponentRef(ref, this.netlist);
+    if (idx !== null) {
+      this.sim.setComponentValue(idx, param, value);
+      this.renderer?.render();
+    }
+  }
+
+  getNodeVoltage(nodeIndex: number): number {
+    return this.sim?.getNodeVoltages()[nodeIndex] ?? 0;
+  }
+
+  getTime(): number {
+    return this.sim?.time ?? 0;
+  }
+
   addSlider(opts: AddSliderOptions): void {
     if (!this.initialized) {
       this.pendingSliders.push(opts);
@@ -75,6 +107,8 @@ class CircuitSnippetElement extends HTMLElement {
     }
     this.createSliderInternal(opts);
   }
+
+  // --- Internal ---
 
   private createSliderInternal(opts: AddSliderOptions): void {
     if (!this.sim || !this.controlsEl) return;
@@ -96,6 +130,34 @@ class CircuitSnippetElement extends HTMLElement {
     this.controlsEl.appendChild(el);
   }
 
+  private autoGenerateControls(): void {
+    if (!this.netlist) return;
+    const comps = this.netlist.components;
+    let adjustable = 0;
+    for (const nc of comps) {
+      if ('resistance' in nc.component || 'capacitance' in nc.component || nc.component.type === 'v' || nc.component.type === 'R') {
+        adjustable++;
+      }
+    }
+    if (adjustable > 6) return;
+
+    const typeCounts: Record<string, number> = {};
+    for (let i = 0; i < comps.length; i++) {
+      const comp = comps[i].component;
+      const t = comp.type;
+      typeCounts[t] = (typeCounts[t] ?? 0) + 1;
+      const idx = typeCounts[t];
+
+      if (comp.type === 'r') {
+        this.pendingSliders.push({ label: `R${idx}`, componentIndex: i, param: 'resistance', min: 1, max: 1e7, scale: 'log', unit: 'Ω' });
+      } else if (comp.type === 'c') {
+        this.pendingSliders.push({ label: `C${idx}`, componentIndex: i, param: 'capacitance', min: 1e-12, max: 0.1, scale: 'log', unit: 'F' });
+      } else if (comp.type === 'v' || comp.type === 'R') {
+        this.pendingSliders.push({ label: `V${idx} freq`, componentIndex: i, param: 'frequency', min: 1, max: 100000, scale: 'log', unit: 'Hz' });
+      }
+    }
+  }
+
   private async init() {
     const xml = await this.getCircuitXML();
     if (!xml) {
@@ -110,6 +172,7 @@ class CircuitSnippetElement extends HTMLElement {
     const layout = this.getAttribute('layout') ?? 'vertical';
     const scopeRatio = parseFloat(this.getAttribute('scope-ratio') ?? '0.4');
     const displayTime = parseFloat(this.getAttribute('display-time') ?? '0.012');
+    const theme = (this.getAttribute('theme') === 'dark' ? 'dark' : 'light') as 'light' | 'dark';
     this.autoStart = this.getAttribute('running') !== 'false';
 
     const showSchematic = layout !== 'scope-only';
@@ -135,7 +198,7 @@ class CircuitSnippetElement extends HTMLElement {
     style.textContent = STYLES;
 
     const container = document.createElement('div');
-    container.className = `cs-container ${isHorizontal ? 'horizontal' : 'vertical'}`;
+    container.className = `cs-container ${isHorizontal ? 'horizontal' : 'vertical'}${theme === 'dark' ? ' dark' : ''}`;
     container.style.width = `${width}px`;
 
     const schematicCanvas = document.createElement('canvas');
@@ -149,7 +212,7 @@ class CircuitSnippetElement extends HTMLElement {
     if (!showScope) scopeCanvas.classList.add('cs-hidden');
 
     this.controlsEl = document.createElement('div');
-    this.controlsEl.className = 'cs-controls';
+    this.controlsEl.className = `cs-controls${theme === 'dark' ? ' dark' : ''}`;
     this.controlsEl.style.width = `${width}px`;
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'cs-toggle';
@@ -167,13 +230,13 @@ class CircuitSnippetElement extends HTMLElement {
     this.netlist = buildNetlist(this.circuitData);
 
     if (showSchematic) {
-      this.renderer = new Renderer(schematicCanvas, this.circuitData);
+      this.renderer = new Renderer(schematicCanvas, this.circuitData, theme);
       this.renderer.render();
     }
 
     if (showScope) {
       this.sim = new Simulator(this.netlist);
-      const scope = new Scope(scopeCanvas, this.netlist, this.circuitData, displayTime);
+      const scope = new Scope(scopeCanvas, this.netlist, this.circuitData, displayTime, theme);
       this.runner = new SimulationRunner(this.sim, { scope });
 
       if (this.autoStart) {
@@ -210,11 +273,13 @@ class CircuitSnippetElement extends HTMLElement {
     }
 
     // Parse JSON config for declarative controls
+    let hasJsonConfig = false;
     const jsonEl = this.querySelector('script[type="application/json"]');
     if (jsonEl?.textContent && this.netlist) {
       try {
         const config = JSON.parse(jsonEl.textContent);
-        if (Array.isArray(config.controls)) {
+        if (Array.isArray(config.controls) && config.controls.length > 0) {
+          hasJsonConfig = true;
           for (const ctrl of config.controls) {
             const idx = resolveComponentRef(ctrl.component, this.netlist);
             if (idx === null) continue;
@@ -232,6 +297,11 @@ class CircuitSnippetElement extends HTMLElement {
       } catch (e) {
         console.error('circuit-snippet: invalid JSON config', e);
       }
+    }
+
+    // Auto-generate controls if no JSON config and no programmatic sliders
+    if (!hasJsonConfig && this.pendingSliders.length === 0) {
+      this.autoGenerateControls();
     }
 
     // Flush pending sliders
