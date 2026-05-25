@@ -336,4 +336,16 @@ export class Simulator {
   getNodeVoltages(): Float64Array {
     return this.nodeVoltages;
   }
+
+  setComponentValue(netlistIndex: number, param: string, value: number): void {
+    (this.netlist.components[netlistIndex].component as any)[param] = value;
+  }
+
+  getComponent(netlistIndex: number) {
+    return this.netlist.components[netlistIndex].component;
+  }
+
+  getNetlist() {
+    return this.netlist;
+  }
 }
