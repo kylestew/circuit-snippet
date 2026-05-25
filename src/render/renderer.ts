@@ -91,13 +91,7 @@ export class Renderer {
         case 'l': drawInductor(ctx, x1, y1, x2, y2); break;
         case 'd': drawDiode(ctx, x1, y1, x2, y2); break;
         case 't': drawBJT(ctx, x1, y1, x2, y2, (comp as any).pnp); break;
-        case 'a': {
-          const oa = comp as any;
-          drawOpAmp(ctx, x1, y1, x2, y2,
-            this.tx(oa.inputPlus.x), this.ty(oa.inputPlus.y),
-            this.tx(oa.inputMinus.x), this.ty(oa.inputMinus.y));
-          break;
-        }
+        case 'a': drawOpAmp(ctx, x1, y1, x2, y2); break;
         case 'v': case 'R': drawVoltageSource(ctx, x1, y1, x2, y2); break;
         case 'g': drawGround(ctx, x1, y1, x2, y2); break;
         case 'O': case 'p': drawDot(ctx, x1, y1); break;
