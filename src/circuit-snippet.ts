@@ -65,7 +65,7 @@ class CircuitSnippetElement extends HTMLElement {
   private initialized = false;
 
   connectedCallback() {
-    this.init();
+    requestAnimationFrame(() => this.init());
   }
 
   disconnectedCallback() {
