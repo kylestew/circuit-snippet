@@ -221,16 +221,18 @@ export function drawBJT(ctx: Ctx, x1: number, y1: number, x2: number, y2: number
 
 export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: number): void {
   const { len } = setupComponent(ctx, x1, y1, x2, y2);
-  // Falstad inputs are at ±len/2 perpendicular from x1 end
   const inputOffset = len / 2;
-  const bodyW = len * 0.5;
-  const bodyH = inputOffset * 2.4;
+
+  // Fixed-size triangle body
+  const bodyW = 24;
+  const bodyH = 28;
+  const bodyX = bodyW * 0.1;
 
   // Triangle body
   ctx.beginPath();
-  ctx.moveTo(-bodyW / 2, -bodyH / 2);
-  ctx.lineTo(-bodyW / 2, bodyH / 2);
-  ctx.lineTo(bodyW / 2, 0);
+  ctx.moveTo(bodyX - bodyW / 2, -bodyH / 2);
+  ctx.lineTo(bodyX - bodyW / 2, bodyH / 2);
+  ctx.lineTo(bodyX + bodyW / 2, 0);
   ctx.closePath();
   ctx.stroke();
 
@@ -239,25 +241,27 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   ctx.font = '10px system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('+', -bodyW / 2 + 4, inputOffset);
-  ctx.fillText('−', -bodyW / 2 + 4, -inputOffset);
+  ctx.fillText('+', bodyX - bodyW / 2 + 3, bodyH / 4);
+  ctx.fillText('−', bodyX - bodyW / 2 + 3, -bodyH / 4);
   ctx.restore();
 
-  // + input lead: horizontal into triangle body
+  // + input lead: horizontal from wire to body, with vertical jog
   ctx.beginPath();
   ctx.moveTo(-len / 2, inputOffset);
-  ctx.lineTo(-bodyW / 2, inputOffset);
+  ctx.lineTo(bodyX - bodyW / 2 - Math.abs(inputOffset - bodyH / 4), inputOffset);
+  ctx.lineTo(bodyX - bodyW / 2, bodyH / 4);
   ctx.stroke();
 
-  // - input lead: horizontal into triangle body
+  // - input lead: horizontal from wire to body, with vertical jog
   ctx.beginPath();
   ctx.moveTo(-len / 2, -inputOffset);
-  ctx.lineTo(-bodyW / 2, -inputOffset);
+  ctx.lineTo(bodyX - bodyW / 2 - Math.abs(inputOffset - bodyH / 4), -inputOffset);
+  ctx.lineTo(bodyX - bodyW / 2, -bodyH / 4);
   ctx.stroke();
 
   // Output lead
   ctx.beginPath();
-  ctx.moveTo(bodyW / 2, 0);
+  ctx.moveTo(bodyX + bodyW / 2, 0);
   ctx.lineTo(len / 2, 0);
   ctx.stroke();
   ctx.restore();
