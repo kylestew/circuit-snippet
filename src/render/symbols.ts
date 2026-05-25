@@ -156,61 +156,64 @@ export function drawDiode(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
 
 export function drawBJT(ctx: Ctx, x1: number, y1: number, x2: number, y2: number, pnp: boolean): void {
   const { len } = setupComponent(ctx, x1, y1, x2, y2);
-  const r = 14;
-  const barH = 12;
+  const termOffset = len / 2;
+  const barX = 0;
+  const barH = len * 0.2;
 
   // Base lead
   ctx.beginPath();
   ctx.moveTo(-len / 2, 0);
-  ctx.lineTo(-barH / 3, 0);
+  ctx.lineTo(barX, 0);
   ctx.stroke();
 
   // Vertical bar
   ctx.beginPath();
-  ctx.moveTo(-barH / 3, -barH);
-  ctx.lineTo(-barH / 3, barH);
+  ctx.moveTo(barX, -barH);
+  ctx.lineTo(barX, barH);
   ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.lineWidth = 1.5;
 
-  // Collector lead (top)
+  // Collector: 45° from bar to horizontal, then to terminal
+  const colBarY = -barH * 0.6;
+  const colDy = termOffset - Math.abs(colBarY);
   ctx.beginPath();
-  ctx.moveTo(-barH / 3, -barH / 2);
-  ctx.lineTo(len / 4, -barH);
-  ctx.lineTo(len / 2, -barH);
+  ctx.moveTo(barX, colBarY);
+  ctx.lineTo(barX + colDy, -termOffset);
+  ctx.lineTo(len / 2, -termOffset);
   ctx.stroke();
 
-  // Emitter lead (bottom) with arrow
+  // Emitter: 45° from bar to horizontal, then to terminal
+  const emBarY = barH * 0.6;
+  const emDy = termOffset - Math.abs(emBarY);
   ctx.beginPath();
-  ctx.moveTo(-barH / 3, barH / 2);
-  ctx.lineTo(len / 4, barH);
-  ctx.lineTo(len / 2, barH);
+  ctx.moveTo(barX, emBarY);
+  ctx.lineTo(barX + emDy, termOffset);
+  ctx.lineTo(len / 2, termOffset);
   ctx.stroke();
 
   // Arrow on emitter
-  const ax = len / 4;
-  const ay = barH;
+  const arrowX = barX + emDy * 0.4;
+  const arrowY = emBarY + (termOffset - emBarY) * 0.4;
   if (pnp) {
-    // Arrow pointing inward (toward bar)
     ctx.beginPath();
-    ctx.moveTo(-barH / 3 + 2, barH / 2 + 1);
-    ctx.lineTo(-barH / 3 + 8, barH / 2 - 3);
-    ctx.lineTo(-barH / 3 + 8, barH / 2 + 5);
+    ctx.moveTo(barX + 2, emBarY + 2);
+    ctx.lineTo(barX + 8, emBarY - 2);
+    ctx.lineTo(barX + 8, emBarY + 6);
     ctx.closePath();
     ctx.fill();
   } else {
-    // Arrow pointing outward (away from bar)
     ctx.beginPath();
-    ctx.moveTo(ax - 1, ay);
-    ctx.lineTo(ax - 7, ay - 4);
-    ctx.lineTo(ax - 5, ay + 4);
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX - 6, arrowY - 4);
+    ctx.lineTo(arrowX - 4, arrowY + 4);
     ctx.closePath();
     ctx.fill();
   }
 
   // Circle
   ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.arc(barX, 0, len * 0.22, 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.restore();
@@ -240,15 +243,19 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   ctx.fillText('−', -bodyW / 2 + 4, -bodyH / 4);
   ctx.restore();
 
-  // + input lead: from (-len/2, +inputOffset) to triangle edge
+  // + input lead: horizontal then 45° into triangle
+  const plusDy = inputOffset - bodyH / 4;
   ctx.beginPath();
   ctx.moveTo(-len / 2, inputOffset);
+  ctx.lineTo(-bodyW / 2 - plusDy, inputOffset);
   ctx.lineTo(-bodyW / 2, bodyH / 4);
   ctx.stroke();
 
-  // - input lead: from (-len/2, -inputOffset) to triangle edge
+  // - input lead: horizontal then 45° into triangle
+  const minusDy = inputOffset - bodyH / 4;
   ctx.beginPath();
   ctx.moveTo(-len / 2, -inputOffset);
+  ctx.lineTo(-bodyW / 2 - minusDy, -inputOffset);
   ctx.lineTo(-bodyW / 2, -bodyH / 4);
   ctx.stroke();
 
