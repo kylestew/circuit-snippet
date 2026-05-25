@@ -21,11 +21,14 @@
   <h2>Simulation (RC Low-Pass, 2000 steps = 10ms)</h2>
   <pre id="sim-output">Running...</pre>
 
+  <h2>Schematic</h2>
+  <canvas id="schematic" width="600" height="300"></canvas>
+
   <h2>Output Waveform (ASCII)</h2>
   <pre id="waveform">...</pre>
 
   <script type="module">
-    import { parseXML, buildNetlist, Simulator } from './dist/index.js';
+    import { parseXML, buildNetlist, Simulator, Renderer } from './dist/index.js';
 
     const rcLowPass = `
     <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" pb="50" vr="5" mts="5e-11">
@@ -48,6 +51,10 @@
     const circuitData = parseXML(rcLowPass);
     const netlist = buildNetlist(circuitData);
     console.log('Netlist:', netlist);
+
+    // Render schematic
+    const renderer = new Renderer(document.getElementById('schematic'), circuitData);
+    renderer.render();
 
     // Display netlist
     const waveforms = ['DC', 'AC', 'Square', 'Triangle', 'Sawtooth', 'Pulse', 'Noise'];
