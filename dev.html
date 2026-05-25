@@ -4,97 +4,51 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Circuit Snippet — Dev</title>
+  <script type="module" src="dist/index.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #fafafa; }
     h1 { font-size: 1.2rem; }
-    h2 { font-size: 1rem; margin-top: 1.5rem; }
-    pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
-    canvas { border: 1px solid #ccc; background: #fff; display: block; margin-top: 0.5rem; }
-    button { padding: 0.4rem 1rem; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem; }
-    .controls { margin-top: 0.5rem; }
+    h2 { font-size: 1rem; margin-top: 2rem; }
   </style>
 </head>
 <body>
-  <h1>Circuit Snippet — Phase 0 Dev Page</h1>
+  <h1>Circuit Snippet — Phase 1 Dev Page</h1>
 
-  <h2>Schematic</h2>
-  <canvas id="schematic" width="600" height="300"></canvas>
+  <h2>RC Low-Pass Filter</h2>
+  <circuit-snippet width="800" height="500" display-time="0.012">
+    <script type="text/xml">
+      <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" pb="50" vr="5" mts="5e-11">
+        <v x="96 176 96 272" f="0" wf="2" fr="100" maxv="2"/>
+        <g x="96 272 96 288" f="0"/>
+        <w x="96 176 192 176" f="0"/>
+        <w x="320 176 416 176" f="0"/>
+        <c x="320 176 320 272" f="0" c="0.00001" iv="0.001" sr="0" vd="1.9710715010778561"/>
+        <g x="320 272 320 288" f="0"/>
+        <O x="416 176 480 176" f="0" sc="0"/>
+        <r x="192 176 320 176" f="0" r="100"/>
+        <o en="2" sp="16" f="x3" p="0">
+          <p v="0" sc="5"/>
+          <p v="3" sc="0.05"/>
+          <p e="6" v="0" sc="5"/>
+        </o>
+      </cir>
+    </script>
+  </circuit-snippet>
 
-  <h2>Scope (Live)</h2>
-  <canvas id="scope" width="800" height="250"></canvas>
-  <div class="controls">
-    <button id="toggle">Stop</button>
-  </div>
-
-  <details>
-    <summary>Netlist Debug</summary>
-    <pre id="netlist-output">Loading...</pre>
-  </details>
-
-  <script type="module">
-    import { parseXML, buildNetlist, Simulator, SimulationRunner, Renderer, Scope } from './dist/index.js';
-
-    const rcLowPass = `
-    <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" pb="50" vr="5" mts="5e-11">
-      <v x="96 176 96 272" f="0" wf="2" fr="100" maxv="2"/>
-      <g x="96 272 96 288" f="0"/>
-      <w x="96 176 192 176" f="0"/>
-      <w x="320 176 416 176" f="0"/>
-      <c x="320 176 320 272" f="0" c="0.00001" iv="0.001" sr="0" vd="1.9710715010778561"/>
-      <g x="320 272 320 288" f="0"/>
-      <O x="416 176 480 176" f="0" sc="0"/>
-      <r x="192 176 320 176" f="0" r="100"/>
-      <o en="2" sp="16" f="x3" p="0">
-        <p v="0" sc="5"/>
-        <p v="3" sc="0.05"/>
-        <p e="6" v="0" sc="5"/>
-      </o>
-    </cir>`;
-
-    // Parse + build netlist
-    const circuitData = parseXML(rcLowPass);
-    const netlist = buildNetlist(circuitData);
-
-    // Render schematic
-    const renderer = new Renderer(document.getElementById('schematic'), circuitData);
-    renderer.render();
-
-    // Display netlist debug
-    const waveforms = ['DC', 'AC', 'Square', 'Triangle', 'Sawtooth', 'Pulse', 'Noise'];
-    function fmtValue(comp) {
-      if (comp.type === 'r') return `${comp.resistance}Ω`;
-      if (comp.type === 'c') return `${comp.capacitance}F`;
-      if (comp.type === 'v' || comp.type === 'R') return `${waveforms[comp.waveform]} ${comp.frequency}Hz ${comp.maxVoltage}V`;
-      return '';
-    }
-    let nlText = `Nodes: ${netlist.nodes.length} (node 0 = GND)\n`;
-    for (const node of netlist.nodes) {
-      nlText += `  Node ${node.id}: ${node.coords.map(c => `(${c.x},${c.y})`).join(', ')}\n`;
-    }
-    nlText += `\nComponents:\n`;
-    for (const nc of netlist.components) {
-      const val = fmtValue(nc.component);
-      nlText += `  ${nc.component.type}${val ? '(' + val + ')' : ''}: nodes [${nc.nodes.join(', ')}]\n`;
-    }
-    document.getElementById('netlist-output').textContent = nlText;
-
-    // Live simulation
-    const sim = new Simulator(netlist);
-    const scope = new Scope(document.getElementById('scope'), netlist, circuitData);
-    const runner = new SimulationRunner(sim, { scope, windowSize: 2000 });
-    runner.start();
-
-    // Start/stop toggle
-    const btn = document.getElementById('toggle');
-    btn.addEventListener('click', () => {
-      if (runner.isRunning()) {
-        runner.stop();
-        btn.textContent = 'Start';
-      } else {
-        runner.start();
-        btn.textContent = 'Stop';
-      }
-    });
-  </script>
+  <h2>Voltage Divider</h2>
+  <circuit-snippet width="800" height="500" display-time="0.012">
+    <script type="text/xml">
+      <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" vr="5">
+        <v x="96 176 96 272" f="0" wf="1" fr="100" maxv="5"/>
+        <g x="96 272 96 288" f="0"/>
+        <w x="96 176 192 176" f="0"/>
+        <r x="192 176 320 176" f="0" r="1000"/>
+        <w x="320 176 416 176" f="0"/>
+        <O x="416 176 480 176" f="0" sc="0"/>
+        <r x="320 176 320 272" f="0" r="1000"/>
+        <g x="320 272 320 288" f="0"/>
+      </cir>
+    </script>
+  </circuit-snippet>
 </body>
 </html>

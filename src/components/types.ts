@@ -19,6 +19,12 @@ export interface Capacitor extends BaseComponent {
   initialVoltage: number;
 }
 
+export interface Inductor extends BaseComponent {
+  type: 'l';
+  inductance: number;
+  current: number;
+}
+
 export interface VoltageSource extends BaseComponent {
   type: 'v' | 'R';
   waveform: number;
@@ -45,7 +51,7 @@ export interface Probe extends BaseComponent {
   type: 'p';
 }
 
-export type Component = Resistor | Capacitor | VoltageSource | Wire | Ground | Output | Probe;
+export type Component = Resistor | Capacitor | Inductor | VoltageSource | Wire | Ground | Output | Probe;
 
 export interface SimOptions {
   timeStep: number;

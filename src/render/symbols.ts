@@ -121,6 +121,27 @@ export function drawGround(ctx: Ctx, x1: number, y1: number, x2: number, y2: num
   ctx.restore();
 }
 
+export function drawInductor(ctx: Ctx, x1: number, y1: number, x2: number, y2: number): void {
+  const { len } = setupComponent(ctx, x1, y1, x2, y2);
+  const bodyLen = len * 0.5;
+  const bumps = 4;
+  const bumpW = bodyLen / bumps;
+  const bumpH = 6;
+
+  ctx.beginPath();
+  ctx.moveTo(-len / 2, 0);
+  ctx.lineTo(-bodyLen / 2, 0);
+  for (let i = 0; i < bumps; i++) {
+    const cx = -bodyLen / 2 + (i + 0.5) * bumpW;
+    const startX = -bodyLen / 2 + i * bumpW;
+    ctx.arcTo(cx, -bumpH * 2, startX + bumpW, 0, bumpH);
+    ctx.lineTo(startX + bumpW, 0);
+  }
+  ctx.lineTo(len / 2, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
 export function drawDot(ctx: Ctx, x: number, y: number, radius = 3): void {
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);

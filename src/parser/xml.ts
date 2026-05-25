@@ -1,5 +1,5 @@
 import type {
-  Component, Resistor, Capacitor, VoltageSource, Wire, Ground, Output, Probe,
+  Component, Resistor, Capacitor, Inductor, VoltageSource, Wire, Ground, Output, Probe,
   SimOptions, ScopeConfig, ScopePlot, CircuitData, BaseComponent
 } from '../components/types.js';
 
@@ -28,6 +28,14 @@ function parseCapacitor(el: Element): Capacitor {
     capacitance: num(el, 'c', 1e-6),
     voltDiff: num(el, 'vd'),
     initialVoltage: num(el, 'iv'),
+  };
+}
+
+function parseInductor(el: Element): Inductor {
+  return {
+    type: 'l', ...parseBase(el),
+    inductance: num(el, 'l', 1e-3),
+    current: num(el, 'cur'),
   };
 }
 
@@ -91,6 +99,7 @@ function parseOptions(cir: Element): SimOptions {
 const componentParsers: Record<string, (el: Element) => Component> = {
   r: parseResistor,
   c: parseCapacitor,
+  l: parseInductor,
   v: (el) => parseVoltageSource(el, 'v'),
   R: (el) => parseVoltageSource(el, 'R'),
   w: parseWire,

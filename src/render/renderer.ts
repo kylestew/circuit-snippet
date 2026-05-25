@@ -1,5 +1,5 @@
 import type { CircuitData, Component } from '../components/types.js';
-import { drawWire, drawResistor, drawCapacitor, drawVoltageSource, drawGround, drawDot } from './symbols.js';
+import { drawWire, drawResistor, drawCapacitor, drawInductor, drawVoltageSource, drawGround, drawDot } from './symbols.js';
 import { formatSI } from './format.js';
 
 const WAVEFORM_NAMES = ['DC', 'AC', 'Sq', 'Tri', 'Saw', 'Pls', 'Nse'];
@@ -8,6 +8,7 @@ function componentLabel(comp: Component): string | undefined {
   switch (comp.type) {
     case 'r': return formatSI(comp.resistance, 'Ω');
     case 'c': return formatSI(comp.capacitance, 'F');
+    case 'l': return formatSI(comp.inductance, 'H');
     case 'v': case 'R': {
       const wf = WAVEFORM_NAMES[comp.waveform] ?? '?';
       return `${wf} ${formatSI(comp.frequency, 'Hz')} ${formatSI(comp.maxVoltage, 'V')}`;
@@ -80,6 +81,7 @@ export class Renderer {
         case 'w': drawWire(ctx, x1, y1, x2, y2); break;
         case 'r': drawResistor(ctx, x1, y1, x2, y2); break;
         case 'c': drawCapacitor(ctx, x1, y1, x2, y2); break;
+        case 'l': drawInductor(ctx, x1, y1, x2, y2); break;
         case 'v': case 'R': drawVoltageSource(ctx, x1, y1, x2, y2); break;
         case 'g': drawGround(ctx, x1, y1, x2, y2); break;
         case 'O': case 'p': drawDot(ctx, x1, y1); break;

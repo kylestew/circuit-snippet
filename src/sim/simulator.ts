@@ -1,4 +1,4 @@
-import type { Netlist, NetlistComponent, VoltageSource, Resistor, Capacitor } from '../components/types.js';
+import type { Netlist, NetlistComponent, VoltageSource, Resistor, Capacitor, Inductor } from '../components/types.js';
 import { waveformVoltage } from './waveform.js';
 import { luSolve } from './lu.js';
 
@@ -9,7 +9,8 @@ export class Simulator {
   private nodeCount: number;
   private vsCount: number;
   private vsIndices: Map<NetlistComponent, number>; // voltage source → extra variable index
-  private capState: Map<NetlistComponent, number>; // capacitor → previous voltage across it
+  private capState: Map<NetlistComponent, number>;
+  private indState: Map<NetlistComponent, number>;
   private nodeVoltages: Float64Array;
   time: number;
 
@@ -19,7 +20,6 @@ export class Simulator {
     this.time = 0;
     this.nodeCount = netlist.nodes.length;
 
-    // Count voltage sources, assign extra variable indices
     this.vsIndices = new Map();
     let vsIdx = 0;
     for (const nc of netlist.components) {
@@ -29,14 +29,19 @@ export class Simulator {
     }
     this.vsCount = vsIdx;
 
-    // Matrix size: (N-1) node voltages + M branch currents
     this.size = (this.nodeCount - 1) + this.vsCount;
 
-    // Capacitor state
     this.capState = new Map();
     for (const nc of netlist.components) {
       if (nc.component.type === 'c') {
         this.capState.set(nc, (nc.component as Capacitor).voltDiff);
+      }
+    }
+
+    this.indState = new Map();
+    for (const nc of netlist.components) {
+      if (nc.component.type === 'l') {
+        this.indState.set(nc, (nc.component as Inductor).current);
       }
     }
 
@@ -98,6 +103,26 @@ export class Simulator {
     if (j >= 0) z[j] -= ieq;
   }
 
+  private stampInductor(A: Float64Array[], z: Float64Array, nc: NetlistComponent): void {
+    const ind = nc.component as Inductor;
+    const req = ind.inductance / this.dt;
+    const geq = 1 / req;
+    const iPrev = this.indState.get(nc)!;
+    const [n1, n2] = nc.nodes;
+    const i = this.mi(n1);
+    const j = this.mi(n2);
+
+    if (i >= 0) A[i][i] += geq;
+    if (j >= 0) A[j][j] += geq;
+    if (i >= 0 && j >= 0) {
+      A[i][j] -= geq;
+      A[j][i] -= geq;
+    }
+
+    if (i >= 0) z[i] -= iPrev;
+    if (j >= 0) z[j] += iPrev;
+  }
+
   step(): Float64Array {
     const n = this.size;
 
@@ -114,24 +139,29 @@ export class Simulator {
         case 'r': this.stampResistor(A, nc); break;
         case 'v': case 'R': this.stampVoltageSource(A, z, nc, this.time); break;
         case 'c': this.stampCapacitor(A, z, nc); break;
+        case 'l': this.stampInductor(A, z, nc); break;
       }
     }
 
-    // Solve
     const x = luSolve(A, z);
 
-    // Update node voltages (node 0 = ground = 0V)
     this.nodeVoltages[0] = 0;
     for (let i = 1; i < this.nodeCount; i++) {
       this.nodeVoltages[i] = x[i - 1];
     }
 
-    // Update capacitor state
     for (const nc of this.netlist.components) {
       if (nc.component.type === 'c') {
         const v1 = this.nodeVoltages[nc.nodes[0]];
         const v2 = this.nodeVoltages[nc.nodes[1]];
         this.capState.set(nc, v1 - v2);
+      }
+      if (nc.component.type === 'l') {
+        const ind = nc.component as Inductor;
+        const v1 = this.nodeVoltages[nc.nodes[0]];
+        const v2 = this.nodeVoltages[nc.nodes[1]];
+        const req = ind.inductance / this.dt;
+        this.indState.set(nc, this.indState.get(nc)! + (v1 - v2) / req);
       }
     }
 
