@@ -224,7 +224,7 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   // Falstad inputs are at ±len/2 perpendicular from x1 end
   const inputOffset = len / 2;
   const bodyW = len * 0.5;
-  const bodyH = inputOffset * 1.4;
+  const bodyH = inputOffset * 2.4;
 
   // Triangle body
   ctx.beginPath();
@@ -239,24 +239,20 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   ctx.font = '10px system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('+', -bodyW / 2 + 4, bodyH / 4);
-  ctx.fillText('−', -bodyW / 2 + 4, -bodyH / 4);
+  ctx.fillText('+', -bodyW / 2 + 4, inputOffset);
+  ctx.fillText('−', -bodyW / 2 + 4, -inputOffset);
   ctx.restore();
 
-  // + input lead: horizontal then 45° into triangle
-  const plusDy = inputOffset - bodyH / 4;
+  // + input lead: horizontal into triangle body
   ctx.beginPath();
   ctx.moveTo(-len / 2, inputOffset);
-  ctx.lineTo(-bodyW / 2 - plusDy, inputOffset);
-  ctx.lineTo(-bodyW / 2, bodyH / 4);
+  ctx.lineTo(-bodyW / 2, inputOffset);
   ctx.stroke();
 
-  // - input lead: horizontal then 45° into triangle
-  const minusDy = inputOffset - bodyH / 4;
+  // - input lead: horizontal into triangle body
   ctx.beginPath();
   ctx.moveTo(-len / 2, -inputOffset);
-  ctx.lineTo(-bodyW / 2 - minusDy, -inputOffset);
-  ctx.lineTo(-bodyW / 2, -bodyH / 4);
+  ctx.lineTo(-bodyW / 2, -inputOffset);
   ctx.stroke();
 
   // Output lead
