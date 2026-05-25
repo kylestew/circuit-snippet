@@ -216,10 +216,30 @@ export function drawBJT(ctx: Ctx, x1: number, y1: number, x2: number, y2: number
   ctx.restore();
 }
 
-export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: number): void {
-  const { len } = setupComponent(ctx, x1, y1, x2, y2);
-  const bodyW = len * 0.6;
-  const bodyH = bodyW * 0.8;
+export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: number,
+  plusX: number, plusY: number, minusX: number, minusY: number): void {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx);
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+
+  // Compute input positions in local (rotated) coordinates
+  const cosA = Math.cos(-angle);
+  const sinA = Math.sin(-angle);
+  const plusLX = (plusX - mx) * cosA - (plusY - my) * sinA;
+  const plusLY = (plusX - mx) * sinA + (plusY - my) * cosA;
+  const minusLX = (minusX - mx) * cosA - (minusY - my) * sinA;
+  const minusLY = (minusX - mx) * sinA + (minusY - my) * cosA;
+
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(angle);
+
+  const bodyW = len * 0.4;
+  const inputSpread = Math.abs(plusLY - minusLY);
+  const bodyH = Math.max(bodyW * 0.8, inputSpread * 0.7);
 
   // Triangle body
   ctx.beginPath();
@@ -229,24 +249,24 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   ctx.closePath();
   ctx.stroke();
 
-  // + label
+  // + and - labels
   ctx.save();
   ctx.font = '10px system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('+', -bodyW / 2 + 4, bodyH / 4);
-  ctx.fillText('−', -bodyW / 2 + 4, -bodyH / 4);
+  ctx.fillText('+', -bodyW / 2 + 4, plusLY * 0.6);
+  ctx.fillText('−', -bodyW / 2 + 4, minusLY * 0.6);
   ctx.restore();
 
-  // Input leads
+  // Input leads: from actual input positions to triangle body edge
   ctx.beginPath();
-  ctx.moveTo(-len / 2, bodyH / 4);
-  ctx.lineTo(-bodyW / 2, bodyH / 4);
+  ctx.moveTo(plusLX, plusLY);
+  ctx.lineTo(-bodyW / 2, plusLY * 0.6);
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(-len / 2, -bodyH / 4);
-  ctx.lineTo(-bodyW / 2, -bodyH / 4);
+  ctx.moveTo(minusLX, minusLY);
+  ctx.lineTo(-bodyW / 2, minusLY * 0.6);
   ctx.stroke();
 
   // Output lead
@@ -254,6 +274,7 @@ export function drawOpAmp(ctx: Ctx, x1: number, y1: number, x2: number, y2: numb
   ctx.moveTo(bodyW / 2, 0);
   ctx.lineTo(len / 2, 0);
   ctx.stroke();
+
   ctx.restore();
 }
 
