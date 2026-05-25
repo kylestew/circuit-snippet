@@ -1,17 +1,26 @@
 {
   "name": "circuit-snippet",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Embeddable analog circuit simulator for teaching electronics",
+  "main": "dist/circuit-snippet.js",
+  "module": "dist/circuit-snippet.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/circuit-snippet.js",
+    "dist/circuit-snippet.esm.js",
+    "dist/index.d.ts"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run bundle",
+    "bundle": "node build.mjs",
     "watch": "tsc --watch",
     "dev": "npx serve ."
   },
-  "keywords": [],
+  "keywords": ["circuit", "simulator", "electronics", "analog", "synthesizer", "web-component"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "typescript": "^6.0.3"
   }
 }
