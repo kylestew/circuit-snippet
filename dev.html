@@ -24,11 +24,14 @@
   <h2>Schematic</h2>
   <canvas id="schematic" width="600" height="300"></canvas>
 
+  <h2>Scope</h2>
+  <canvas id="scope" width="600" height="250"></canvas>
+
   <h2>Output Waveform (ASCII)</h2>
   <pre id="waveform">...</pre>
 
   <script type="module">
-    import { parseXML, buildNetlist, Simulator, Renderer } from './dist/index.js';
+    import { parseXML, buildNetlist, Simulator, Renderer, Scope } from './dist/index.js';
 
     const rcLowPass = `
     <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" pb="50" vr="5" mts="5e-11">
@@ -80,6 +83,10 @@
     const t0 = performance.now();
     const result = sim.run(2000);
     const elapsed = (performance.now() - t0).toFixed(1);
+
+    // Scope
+    const scope = new Scope(document.getElementById('scope'), netlist, circuitData);
+    scope.plot(result);
 
     // Find the output node (connected to the O element)
     const outputComp = netlist.components.find(nc => nc.component.type === 'O');
