@@ -1,4 +1,4 @@
-import type { CircuitData, Netlist, NetlistNode, NetlistComponent } from '../components/types.js';
+import type { CircuitData, Netlist, NetlistNode, NetlistComponent, OpAmp, BJT } from '../components/types.js';
 
 class UnionFind {
   private parent: number[];
@@ -54,6 +54,17 @@ export function buildNetlist(data: CircuitData): Netlist {
     getNodeId(comp.x1, comp.y1);
     if (!oneTerminal.has(comp.type)) {
       getNodeId(comp.x2, comp.y2);
+    }
+    if (comp.type === 'a') {
+      const oa = comp as OpAmp;
+      getNodeId(oa.inputPlus.x, oa.inputPlus.y);
+      getNodeId(oa.inputMinus.x, oa.inputMinus.y);
+    }
+    if (comp.type === 't') {
+      const bjt = comp as BJT;
+      getNodeId(bjt.base.x, bjt.base.y);
+      getNodeId(bjt.collector.x, bjt.collector.y);
+      getNodeId(bjt.emitter.x, bjt.emitter.y);
     }
   }
 
@@ -116,10 +127,23 @@ export function buildNetlist(data: CircuitData): Netlist {
   const components: NetlistComponent[] = [];
   for (const comp of data.components) {
     if (comp.type === 'w' || comp.type === 'g') continue;
-    const n1 = compactId(getNodeId(comp.x1, comp.y1));
     if (oneTerminal.has(comp.type)) {
+      const n1 = compactId(getNodeId(comp.x1, comp.y1));
       components.push({ component: comp, nodes: [n1] });
+    } else if (comp.type === 'a') {
+      const oa = comp as OpAmp;
+      const nPlus = compactId(getNodeId(oa.inputPlus.x, oa.inputPlus.y));
+      const nMinus = compactId(getNodeId(oa.inputMinus.x, oa.inputMinus.y));
+      const nOut = compactId(getNodeId(comp.x2, comp.y2));
+      components.push({ component: comp, nodes: [nPlus, nMinus, nOut] });
+    } else if (comp.type === 't') {
+      const bjt = comp as BJT;
+      const nBase = compactId(getNodeId(bjt.base.x, bjt.base.y));
+      const nCollector = compactId(getNodeId(bjt.collector.x, bjt.collector.y));
+      const nEmitter = compactId(getNodeId(bjt.emitter.x, bjt.emitter.y));
+      components.push({ component: comp, nodes: [nBase, nCollector, nEmitter] });
     } else {
+      const n1 = compactId(getNodeId(comp.x1, comp.y1));
       const n2 = compactId(getNodeId(comp.x2, comp.y2));
       components.push({ component: comp, nodes: [n1, n2] });
     }

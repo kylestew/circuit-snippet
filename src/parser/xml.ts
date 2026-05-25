@@ -1,5 +1,5 @@
 import type {
-  Component, Resistor, Capacitor, Inductor, VoltageSource, Wire, Ground, Output, Probe,
+  Component, Resistor, Capacitor, Inductor, VoltageSource, Wire, Ground, Output, Probe, Diode, OpAmp, BJT,
   SimOptions, ScopeConfig, ScopePlot, CircuitData, BaseComponent
 } from '../components/types.js';
 
@@ -67,6 +67,51 @@ function parseProbe(el: Element): Probe {
   return { type: 'p', ...parseBase(el) };
 }
 
+function parseDiode(el: Element): Diode {
+  return {
+    type: 'd', ...parseBase(el),
+    saturationCurrent: num(el, 'is', 1e-14),
+    emissionCoefficient: num(el, 'n', 1),
+  };
+}
+
+function parseOpAmp(el: Element): OpAmp {
+  const base = parseBase(el);
+  const dx = base.x2 - base.x1;
+  const dy = base.y2 - base.y1;
+  // Inputs are offset perpendicular to the body axis at the x1,y1 end
+  // Falstad convention: + input below, - input above (relative to body direction)
+  const px = -dy * 0.5;
+  const py = dx * 0.5;
+  return {
+    type: 'a', ...base,
+    maxOut: num(el, 'maxo', 15),
+    minOut: num(el, 'mino', -15),
+    gain: num(el, 'gain', 100000),
+    inputPlus: { x: base.x1 + px, y: base.y1 + py },
+    inputMinus: { x: base.x1 - px, y: base.y1 - py },
+  };
+}
+
+function parseBJT(el: Element): BJT {
+  const base = parseBase(el);
+  const pnp = num(el, 'pnp') !== 0;
+  const dx = base.x2 - base.x1;
+  const dy = base.y2 - base.y1;
+  // Falstad BJT: x1,y1 is base side, x2,y2 is collector/emitter side
+  // Collector and emitter are offset perpendicular to the body at the x2,y2 end
+  const px = -dy * 0.5;
+  const py = dx * 0.5;
+  return {
+    type: 't', ...base,
+    pnp,
+    beta: num(el, 'beta', 100),
+    base: { x: base.x1, y: base.y1 },
+    collector: { x: base.x2 + px, y: base.y2 + py },
+    emitter: { x: base.x2 - px, y: base.y2 - py },
+  };
+}
+
 function parseScope(el: Element): ScopeConfig {
   const plots: ScopePlot[] = [];
   for (const child of el.children) {
@@ -106,6 +151,9 @@ const componentParsers: Record<string, (el: Element) => Component> = {
   g: parseGround,
   O: parseOutput,
   p: parseProbe,
+  d: parseDiode,
+  a: parseOpAmp,
+  t: parseBJT,
 };
 
 export function parseXML(input: string): CircuitData {

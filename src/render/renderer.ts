@@ -1,5 +1,5 @@
 import type { CircuitData, Component } from '../components/types.js';
-import { drawWire, drawResistor, drawCapacitor, drawInductor, drawVoltageSource, drawGround, drawDot } from './symbols.js';
+import { drawWire, drawResistor, drawCapacitor, drawInductor, drawDiode, drawBJT, drawOpAmp, drawVoltageSource, drawGround, drawDot } from './symbols.js';
 import { formatSI } from './format.js';
 
 const WAVEFORM_NAMES = ['DC', 'AC', 'Sq', 'Tri', 'Saw', 'Pls', 'Nse'];
@@ -82,6 +82,9 @@ export class Renderer {
         case 'r': drawResistor(ctx, x1, y1, x2, y2); break;
         case 'c': drawCapacitor(ctx, x1, y1, x2, y2); break;
         case 'l': drawInductor(ctx, x1, y1, x2, y2); break;
+        case 'd': drawDiode(ctx, x1, y1, x2, y2); break;
+        case 't': drawBJT(ctx, x1, y1, x2, y2, (comp as any).pnp); break;
+        case 'a': drawOpAmp(ctx, x1, y1, x2, y2); break;
         case 'v': case 'R': drawVoltageSource(ctx, x1, y1, x2, y2); break;
         case 'g': drawGround(ctx, x1, y1, x2, y2); break;
         case 'O': case 'p': drawDot(ctx, x1, y1); break;

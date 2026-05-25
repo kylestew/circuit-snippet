@@ -51,7 +51,32 @@ export interface Probe extends BaseComponent {
   type: 'p';
 }
 
-export type Component = Resistor | Capacitor | Inductor | VoltageSource | Wire | Ground | Output | Probe;
+export interface Diode extends BaseComponent {
+  type: 'd';
+  saturationCurrent: number;
+  emissionCoefficient: number;
+}
+
+export interface OpAmp extends BaseComponent {
+  type: 'a';
+  maxOut: number;
+  minOut: number;
+  gain: number;
+  inputPlus: { x: number; y: number };
+  inputMinus: { x: number; y: number };
+}
+
+export interface BJT extends BaseComponent {
+  type: 't';
+  pnp: boolean;
+  beta: number;
+  // Computed input positions from Falstad geometry
+  base: { x: number; y: number };
+  collector: { x: number; y: number };
+  emitter: { x: number; y: number };
+}
+
+export type Component = Resistor | Capacitor | Inductor | VoltageSource | Wire | Ground | Output | Probe | Diode | OpAmp | BJT;
 
 export interface SimOptions {
   timeStep: number;
