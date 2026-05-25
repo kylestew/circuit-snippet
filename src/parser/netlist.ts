@@ -51,20 +51,23 @@ export function buildNetlist(data: CircuitData): Netlist {
 
   const oneTerminal = new Set(['g', 'O', 'p']);
   for (const comp of data.components) {
-    getNodeId(comp.x1, comp.y1);
-    if (!oneTerminal.has(comp.type)) {
-      getNodeId(comp.x2, comp.y2);
-    }
     if (comp.type === 'a') {
+      // Op-amp: terminals are inputPlus, inputMinus, and output (x2,y2)
       const oa = comp as OpAmp;
       getNodeId(oa.inputPlus.x, oa.inputPlus.y);
       getNodeId(oa.inputMinus.x, oa.inputMinus.y);
-    }
-    if (comp.type === 't') {
+      getNodeId(comp.x2, comp.y2);
+    } else if (comp.type === 't') {
+      // BJT: terminals are base, collector, emitter (all computed)
       const bjt = comp as BJT;
       getNodeId(bjt.base.x, bjt.base.y);
       getNodeId(bjt.collector.x, bjt.collector.y);
       getNodeId(bjt.emitter.x, bjt.emitter.y);
+    } else {
+      getNodeId(comp.x1, comp.y1);
+      if (!oneTerminal.has(comp.type)) {
+        getNodeId(comp.x2, comp.y2);
+      }
     }
   }
 
