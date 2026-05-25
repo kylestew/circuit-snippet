@@ -121,6 +121,53 @@ export function drawGround(ctx: Ctx, x1: number, y1: number, x2: number, y2: num
   ctx.restore();
 }
 
+export function drawInvertingSchmitt(ctx: Ctx, x1: number, y1: number, x2: number, y2: number): void {
+  const { len } = setupComponent(ctx, x1, y1, x2, y2);
+  const bodyW = Math.min(44, len * 0.55);
+  const bodyH = 28;
+  const halfW = bodyW / 2;
+  const halfH = bodyH / 2;
+  const bubbleR = 5;
+
+  ctx.beginPath();
+  ctx.moveTo(-len / 2, 0);
+  ctx.lineTo(-halfW, 0);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-halfW, -halfH);
+  ctx.lineTo(halfW - 8, -halfH);
+  ctx.lineTo(halfW, 0);
+  ctx.lineTo(halfW - 8, halfH);
+  ctx.lineTo(-halfW, halfH);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-halfW + 8, -4);
+  ctx.lineTo(-halfW + 14, -4);
+  ctx.lineTo(-halfW + 8, 4);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-halfW + 16, -6);
+  ctx.lineTo(-halfW + 10, -6);
+  ctx.lineTo(-halfW + 16, 0);
+  ctx.lineTo(-halfW + 10, 6);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(halfW + bubbleR, 0, bubbleR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(halfW + bubbleR * 2, 0);
+  ctx.lineTo(len / 2, 0);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 export function drawDiode(ctx: Ctx, x1: number, y1: number, x2: number, y2: number): void {
   const { len } = setupComponent(ctx, x1, y1, x2, y2);
   const triH = 10;

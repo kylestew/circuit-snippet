@@ -1,5 +1,5 @@
 import type { CircuitData, Component } from '../components/types.js';
-import { drawWire, drawResistor, drawCapacitor, drawInductor, drawDiode, drawBJT, drawOpAmp, drawVoltageSource, drawGround, drawDot } from './symbols.js';
+import { drawWire, drawResistor, drawCapacitor, drawInductor, drawDiode, drawBJT, drawOpAmp, drawInvertingSchmitt, drawVoltageSource, drawGround, drawDot } from './symbols.js';
 import { formatSI } from './format.js';
 
 const WAVEFORM_NAMES = ['DC', 'AC', 'Sq', 'Tri', 'Saw', 'Pls', 'Nse'];
@@ -18,6 +18,8 @@ function componentLabel(comp: Component): string | undefined {
       const wf = WAVEFORM_NAMES[comp.waveform] ?? '?';
       return `${wf} ${formatSI(comp.frequency, 'Hz')} ${formatSI(comp.maxVoltage, 'V')}`;
     }
+    case 'schmitt':
+      return `${formatSI(comp.lowerTrigger, 'V')} / ${formatSI(comp.upperTrigger, 'V')}`;
     default: return undefined;
   }
 }
@@ -92,6 +94,7 @@ export class Renderer {
         case 'd': drawDiode(ctx, x1, y1, x2, y2); break;
         case 't': drawBJT(ctx, x1, y1, x2, y2, (comp as any).pnp); break;
         case 'a': drawOpAmp(ctx, x1, y1, x2, y2); break;
+        case 'schmitt': drawInvertingSchmitt(ctx, x1, y1, x2, y2); break;
         case 'v': case 'R': drawVoltageSource(ctx, x1, y1, x2, y2); break;
         case 'g': drawGround(ctx, x1, y1, x2, y2); break;
         case 'O': case 'p': drawDot(ctx, x1, y1); break;

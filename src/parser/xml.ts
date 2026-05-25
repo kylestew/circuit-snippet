@@ -1,5 +1,5 @@
 import type {
-  Component, Resistor, Capacitor, Inductor, VoltageSource, Wire, Ground, Output, Probe, Diode, OpAmp, BJT,
+  Component, Resistor, Capacitor, Inductor, VoltageSource, Wire, Ground, Output, Probe, Diode, OpAmp, InvertingSchmitt, BJT,
   SimOptions, ScopeConfig, ScopePlot, CircuitData, BaseComponent
 } from '../components/types.js';
 
@@ -93,6 +93,17 @@ function parseOpAmp(el: Element): OpAmp {
   };
 }
 
+function parseInvertingSchmitt(el: Element): InvertingSchmitt {
+  const base = parseBase(el);
+  return {
+    type: 'schmitt', ...base,
+    lowerTrigger: num(el, 'lt', 1.66),
+    upperTrigger: num(el, 'ut', 3.33),
+    highVoltage: num(el, 'lon', 5),
+    lowVoltage: num(el, 'loff', 0),
+  };
+}
+
 function parseBJT(el: Element): BJT {
   const base = parseBase(el);
   const pnp = num(el, 'pnp') !== 0;
@@ -153,6 +164,7 @@ const componentParsers: Record<string, (el: Element) => Component> = {
   p: parseProbe,
   d: parseDiode,
   a: parseOpAmp,
+  InvertingSchmitt: parseInvertingSchmitt,
   t: parseBJT,
 };
 

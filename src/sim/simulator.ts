@@ -1,4 +1,4 @@
-import type { Netlist, NetlistComponent, VoltageSource, Resistor, Capacitor, Inductor, Diode, OpAmp, BJT } from '../components/types.js';
+import type { Netlist, NetlistComponent, VoltageSource, Resistor, Capacitor, Inductor, Diode, OpAmp, InvertingSchmitt, BJT } from '../components/types.js';
 import { waveformVoltage } from './waveform.js';
 import { luSolve } from './lu.js';
 
@@ -15,6 +15,7 @@ export class Simulator {
   private vsIndices: Map<NetlistComponent, number>;
   private capState: Map<NetlistComponent, number>;
   private indState: Map<NetlistComponent, number>;
+  private schmittState: Map<NetlistComponent, boolean>;
   private nodeVoltages: Float64Array;
   private hasNonlinear: boolean;
   time: number;
@@ -28,7 +29,7 @@ export class Simulator {
     this.vsIndices = new Map();
     let vsIdx = 0;
     for (const nc of netlist.components) {
-      if (nc.component.type === 'v' || nc.component.type === 'R' || nc.component.type === 'a') {
+      if (nc.component.type === 'v' || nc.component.type === 'R' || nc.component.type === 'a' || nc.component.type === 'schmitt') {
         this.vsIndices.set(nc, vsIdx++);
       }
     }
@@ -47,6 +48,14 @@ export class Simulator {
     for (const nc of netlist.components) {
       if (nc.component.type === 'l') {
         this.indState.set(nc, (nc.component as Inductor).current);
+      }
+    }
+
+    this.schmittState = new Map();
+    for (const nc of netlist.components) {
+      if (nc.component.type === 'schmitt') {
+        const schmitt = nc.component as InvertingSchmitt;
+        this.schmittState.set(nc, schmitt.highVoltage >= schmitt.lowVoltage);
       }
     }
 
@@ -177,6 +186,36 @@ export class Simulator {
     }
   }
 
+  private updateSchmittStates(): void {
+    for (const nc of this.netlist.components) {
+      if (nc.component.type !== 'schmitt') continue;
+      const schmitt = nc.component as InvertingSchmitt;
+      const nIn = nc.nodes[0];
+      const vIn = nIn === 0 ? 0 : this.nodeVoltages[nIn];
+      let isHigh = this.schmittState.get(nc) ?? true;
+      if (isHigh && vIn > schmitt.upperTrigger) {
+        isHigh = false;
+      } else if (!isHigh && vIn < schmitt.lowerTrigger) {
+        isHigh = true;
+      }
+      this.schmittState.set(nc, isHigh);
+    }
+  }
+
+  private stampInvertingSchmitt(A: Float64Array[], z: Float64Array, nc: NetlistComponent): void {
+    const schmitt = nc.component as InvertingSchmitt;
+    const [, nOut] = nc.nodes;
+    const iO = this.mi(nOut);
+    const k = (this.nodeCount - 1) + this.vsIndices.get(nc)!;
+    const isHigh = this.schmittState.get(nc) ?? true;
+
+    if (iO >= 0) {
+      A[iO][k] += 1;
+      A[k][iO] += 1;
+    }
+    z[k] = isHigh ? schmitt.highVoltage : schmitt.lowVoltage;
+  }
+
   private diodeI(vd: number): { i: number; geq: number } {
     const vClamped = Math.min(vd, 40 * VT);
     const expTerm = Math.exp(vClamped / VT);
@@ -265,6 +304,8 @@ export class Simulator {
     const n = this.size;
     const maxIter = this.hasNonlinear ? MAX_NR_ITER : 1;
 
+    this.updateSchmittStates();
+
     for (let iter = 0; iter < maxIter; iter++) {
       const A: Float64Array[] = [];
       for (let i = 0; i < n; i++) {
@@ -280,6 +321,7 @@ export class Simulator {
           case 'l': this.stampInductor(A, z, nc); break;
           case 'd': this.stampDiode(A, z, nc); break;
           case 'a': this.stampOpAmp(A, z, nc); break;
+          case 'schmitt': this.stampInvertingSchmitt(A, z, nc); break;
           case 't': this.stampBJT(A, z, nc); break;
         }
       }

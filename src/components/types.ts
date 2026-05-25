@@ -66,6 +66,14 @@ export interface OpAmp extends BaseComponent {
   inputMinus: { x: number; y: number };
 }
 
+export interface InvertingSchmitt extends BaseComponent {
+  type: 'schmitt';
+  lowerTrigger: number;
+  upperTrigger: number;
+  highVoltage: number;
+  lowVoltage: number;
+}
+
 export interface BJT extends BaseComponent {
   type: 't';
   pnp: boolean;
@@ -76,7 +84,7 @@ export interface BJT extends BaseComponent {
   emitter: { x: number; y: number };
 }
 
-export type Component = Resistor | Capacitor | Inductor | VoltageSource | Wire | Ground | Output | Probe | Diode | OpAmp | BJT;
+export type Component = Resistor | Capacitor | Inductor | VoltageSource | Wire | Ground | Output | Probe | Diode | OpAmp | InvertingSchmitt | BJT;
 
 export interface SimOptions {
   timeStep: number;
