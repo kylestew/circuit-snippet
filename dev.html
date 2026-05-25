@@ -8,30 +8,31 @@
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #fafafa; }
     h1 { font-size: 1.2rem; }
     h2 { font-size: 1rem; margin-top: 1.5rem; }
-    pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
     canvas { border: 1px solid #ccc; background: #fff; display: block; margin-top: 0.5rem; }
+    button { padding: 0.4rem 1rem; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem; }
+    .controls { margin-top: 0.5rem; }
   </style>
 </head>
 <body>
   <h1>Circuit Snippet — Phase 0 Dev Page</h1>
 
-  <h2>Netlist</h2>
-  <pre id="netlist-output">Loading...</pre>
-
-  <h2>Simulation (RC Low-Pass, 2000 steps = 10ms)</h2>
-  <pre id="sim-output">Running...</pre>
-
   <h2>Schematic</h2>
   <canvas id="schematic" width="600" height="300"></canvas>
 
-  <h2>Scope</h2>
-  <canvas id="scope" width="600" height="250"></canvas>
+  <h2>Scope (Live)</h2>
+  <canvas id="scope" width="800" height="250"></canvas>
+  <div class="controls">
+    <button id="toggle">Stop</button>
+  </div>
 
-  <h2>Output Waveform (ASCII)</h2>
-  <pre id="waveform">...</pre>
+  <details>
+    <summary>Netlist Debug</summary>
+    <pre id="netlist-output">Loading...</pre>
+  </details>
 
   <script type="module">
-    import { parseXML, buildNetlist, Simulator, Renderer, Scope } from './dist/index.js';
+    import { parseXML, buildNetlist, Simulator, SimulationRunner, Renderer, Scope } from './dist/index.js';
 
     const rcLowPass = `
     <cir f="1" ts="0.000005" ic="10.20027730826997" cb="50" pb="50" vr="5" mts="5e-11">
@@ -53,13 +54,12 @@
     // Parse + build netlist
     const circuitData = parseXML(rcLowPass);
     const netlist = buildNetlist(circuitData);
-    console.log('Netlist:', netlist);
 
     // Render schematic
     const renderer = new Renderer(document.getElementById('schematic'), circuitData);
     renderer.render();
 
-    // Display netlist
+    // Display netlist debug
     const waveforms = ['DC', 'AC', 'Square', 'Triangle', 'Sawtooth', 'Pulse', 'Noise'];
     function fmtValue(comp) {
       if (comp.type === 'r') return `${comp.resistance}Ω`;
@@ -78,65 +78,23 @@
     }
     document.getElementById('netlist-output').textContent = nlText;
 
-    // Run simulation
+    // Live simulation
     const sim = new Simulator(netlist);
-    const t0 = performance.now();
-    const result = sim.run(2000);
-    const elapsed = (performance.now() - t0).toFixed(1);
-
-    // Scope
     const scope = new Scope(document.getElementById('scope'), netlist, circuitData);
-    scope.plot(result);
+    const runner = new SimulationRunner(sim, { scope, windowSize: 2000 });
+    runner.start();
 
-    // Find the output node (connected to the O element)
-    const outputComp = netlist.components.find(nc => nc.component.type === 'O');
-    const outputNode = outputComp ? outputComp.nodes[0] : 1;
-    const inputComp = netlist.components.find(nc => nc.component.type === 'v' || nc.component.type === 'R');
-    const inputNode = inputComp ? inputComp.nodes[0] : 1;
-
-    let simText = `Ran 2000 steps in ${elapsed}ms\n`;
-    simText += `TimeStep: ${netlist.options.timeStep}s, Total time: ${(result.time[result.time.length - 1] * 1000).toFixed(3)}ms\n`;
-    simText += `Input node: ${inputNode}, Output node: ${outputNode}\n\n`;
-    simText += `Sample voltages (every 100 steps):\n`;
-    simText += `${'Step'.padEnd(6)} ${'Time(ms)'.padEnd(10)} ${'Input(V)'.padEnd(12)} ${'Output(V)'.padEnd(12)}\n`;
-    for (let i = 0; i < result.voltages.length; i += 100) {
-      const t = (result.time[i] * 1000).toFixed(4);
-      const vIn = result.voltages[i][inputNode].toFixed(4);
-      const vOut = result.voltages[i][outputNode].toFixed(4);
-      simText += `${String(i).padEnd(6)} ${t.padEnd(10)} ${vIn.padEnd(12)} ${vOut.padEnd(12)}\n`;
-    }
-    document.getElementById('sim-output').textContent = simText;
-
-    // ASCII waveform plot
-    const width = 80;
-    const height = 20;
-    const grid = Array.from({ length: height }, () => new Array(width).fill(' '));
-
-    // Sample output voltage at `width` evenly spaced points
-    const step = Math.floor(result.voltages.length / width);
-    const samples = [];
-    for (let i = 0; i < width; i++) {
-      samples.push(result.voltages[Math.min(i * step, result.voltages.length - 1)][outputNode]);
-    }
-    const vMin = Math.min(...samples, -0.5);
-    const vMax = Math.max(...samples, 0.5);
-
-    for (let col = 0; col < width; col++) {
-      const row = Math.round((1 - (samples[col] - vMin) / (vMax - vMin)) * (height - 1));
-      grid[Math.max(0, Math.min(height - 1, row))][col] = '█';
-    }
-
-    // Zero line
-    const zeroRow = Math.round((1 - (0 - vMin) / (vMax - vMin)) * (height - 1));
-    if (zeroRow >= 0 && zeroRow < height) {
-      for (let col = 0; col < width; col++) {
-        if (grid[zeroRow][col] === ' ') grid[zeroRow][col] = '·';
+    // Start/stop toggle
+    const btn = document.getElementById('toggle');
+    btn.addEventListener('click', () => {
+      if (runner.isRunning()) {
+        runner.stop();
+        btn.textContent = 'Start';
+      } else {
+        runner.start();
+        btn.textContent = 'Stop';
       }
-    }
-
-    let wfText = `Output node ${outputNode} voltage (${vMin.toFixed(2)}V to ${vMax.toFixed(2)}V):\n`;
-    wfText += grid.map(row => row.join('')).join('\n');
-    document.getElementById('waveform').textContent = wfText;
+    });
   </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ import { luSolve } from './lu.js';
 
 export class Simulator {
   private netlist: Netlist;
-  private dt: number;
+  readonly dt: number;
   private size: number; // matrix dimension = (nodeCount - 1) + voltageSourceCount
   private nodeCount: number;
   private vsCount: number;

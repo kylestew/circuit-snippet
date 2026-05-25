@@ -1,5 +1,5 @@
 export { parseXML, buildNetlist } from './parser/index.js';
-export { Simulator } from './sim/index.js';
+export { Simulator, SimulationRunner } from './sim/index.js';
 export { Renderer } from './render/index.js';
 export { Scope } from './scope/index.js';
 export type {
